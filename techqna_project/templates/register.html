@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-10 w-full max-w-md transition-all duration-300 transform scale-100 animate-bounce-in border border-gray-100 dark:border-gray-700">
+    <h2 class="text-3xl font-extrabold text-center text-gray-800 dark:text-white mb-8">
+        Join the TechQ&A Community!
+    </h2>
+
+    <form method="post" action="{% url 'register' %}" class="space-y-6">
+        {% csrf_token %} <!-- Django CSRF token for security -->
+        {% for field in form %}
+        <div x-data="{ showPassword: false }">
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ field.label }}</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    {% if field.label == 'Username' %}<i class="fas fa-user text-gray-400"></i>
+                    {% elif field.label == 'Password' or field.label == 'Password confirmation' %}<i class="fas fa-lock text-gray-400"></i>
+                    {% endif %}
+                </div>
+                <input type="{{ field.field.widget.input_type }}" id="{{ field.id_for_label }}" name="{{ field.name }}"
+                       class="mt-1 block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition duration-200"
+                       placeholder="{% if field.label == 'Username' %}Choose a username{% elif field.label == 'Password' %}Create a password{% elif field.label == 'Password confirmation' %}Confirm your password{% endif %}"
+                       {% if field.field.widget.input_type == 'password' %} :type="showPassword ? 'text' : 'password'" {% endif %}>
+                {% if field.field.widget.input_type == 'password' %}
+                    <div @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
+                        <template x-if="showPassword">
+                            <i class="fas fa-eye-slash text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"></i>
+                        </template>
+                        <template x-if="!showPassword">
+                            <i class="fas fa-eye text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"></i>
+                        </template>
+                    </div>
+                {% endif %}
+            </div>
+            {% if field.help_text %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ field.help_text }}</p>
+            {% endif %}
+            {% for error in field.errors %}
+                <p class="text-red-600 dark:text-red-400 text-xs mt-1">{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        {% if form.non_field_errors %}
+            <div class="text-red-600 dark:text-red-400 text-sm p-3 bg-red-100 dark:bg-red-900 rounded-md">
+                <ul class="list-disc list-inside">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <button type="submit"
+                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300 transform hover:scale-105 active:scale-95">
+            Register
+        </button>
+        <p class="mt-6 text-center text-md text-gray-600 dark:text-gray-400">
+            Already have an account?
+            <a href="{% url 'login' %}" class="font-bold text-indigo-600 hover:text-indigo-500 transition duration-300 hover:underline">Login here</a>
+        </p>
+    </form>
+</div>
+{% endblock %}

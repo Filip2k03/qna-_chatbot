@@ -1,0 +1,50 @@
+/* This is your main input file for Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS for chat bubbles and loader that Tailwind doesn't provide directly */
+.chat-bubble {
+    max-width: 75%;
+    word-wrap: break-word;
+    padding: 10px 15px;
+    border-radius: 1.25rem; /* Rounded full */
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.user-bubble {
+    background-color: #4c51bf; /* Indigo 600 */
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 0;
+    animation: fade-in-right; /* Use the custom animation */
+}
+
+.ai-bubble {
+    background-color: #cbd5e0; /* Gray 300 */
+    color: #2d3748; /* Gray 800 */
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
+    animation: fade-in-left; /* Use the custom animation */
+}
+
+/* Dark mode specific styles for AI bubble */
+.dark .ai-bubble {
+    background-color: #4a5568; /* Gray 700 */
+    color: #e2e8f0; /* Gray 200 */
+}
+
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4c51bf;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Q&A Chat{% endblock %}
+
+{% block content %}
+<main class="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 w-full max-w-7xl mx-auto">
+    <!-- Q&A Chat Section -->
+    <section class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col transition-all duration-300 border border-gray-100 dark:border-gray-700">
+        <h2 class="text-3xl font-extrabold mb-6 text-gray-800 dark:text-white border-b pb-4 border-gray-200 dark:border-gray-700">
+            <i class="fas fa-comments text-indigo-600 mr-3"></i> Ask the AI Tech Tutor
+        </h2>
+        <div id="chat-messages" class="flex-grow overflow-y-auto p-6 rounded-xl bg-gray-100 dark:bg-gray-700 mb-6 space-y-4 shadow-inner custom-scrollbar" style="max-height: 60vh;">
+            <!-- Chat messages will appear here -->
+            <div class="chat-bubble ai-bubble animate-pop-in">Hello {{ current_username }}! I'm your AI Tech Tutor. Ask me anything about technology!</div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <input type="text" id="question-input" placeholder="Type your tech question here..."
+                   class="flex-grow px-5 py-3 border border-gray-300 rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition duration-300">
+            <button id="send-button"
+                    class="p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300 transform hover:scale-110 active:scale-95">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="loadingIndicator" class="hidden mt-4 flex items-center justify-center space-x-3 text-gray-600 dark:text-gray-400 font-medium">
+            <div class="loader"></div>
+            <span>AI is thinking...</span>
+        </div>
+    </section>
+
+    <!-- Score and Leaderboard Section -->
+    <section class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col space-y-8 transition-all duration-300 border border-gray-100 dark:border-gray-700">
+        <!-- Current Score -->
+        <div class="bg-indigo-100 dark:bg-indigo-900 rounded-xl p-6 shadow-xl flex flex-col items-center transition duration-300 transform hover:scale-[1.02] cursor-pointer">
+            <h3 class="text-xl font-bold mb-3 text-gray-800 dark:text-white">Your Current Score:</h3>
+            <span id="currentScore" class="text-6xl font-extrabold text-indigo-700 dark:text-indigo-400 animate-bounce-in">{{ current_score }}</span>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Keep asking to earn more points!</p>
+        </div>
+
+        <!-- Global Leaderboard -->
+        <div>
+            <h3 class="text-2xl font-bold mb-5 text-gray-800 dark:text-white flex items-center">
+                <i class="fas fa-trophy text-yellow-500 mr-3"></i> Global Leaderboard
+            </h3>
+            <div class="overflow-x-auto rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                Player
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                Score
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                Last Updated
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody" class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        {% for entry in leaderboard %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ entry.username }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-md font-bold text-indigo-600 dark:text-indigo-400">{{ entry.score }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ entry.last_updated }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No scores yet! Be the first to play.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Frontend state for chat history
+    // This will be sent back and forth to the backend to maintain conversation context
+    let chatHistory = [];
+
+    // DOM Elements
+    const chatMessages = document.getElementById('chat-messages');
+    const questionInput = document.getElementById('question-input');
+    const sendButton = document.getElementById('send-button');
+    const currentScoreSpan = document.getElementById('currentScore');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    /**
+     * Appends a message bubble to the chat interface.
+     * @param {string} role - 'user' or 'ai'
+     * @param {string} text - The message content.
+     */
+    function appendMessage(role, text) {
+        const div = document.createElement('div');
+        div.classList.add('chat-bubble', role === 'user' ? 'user-bubble' : 'ai-bubble', 'animate-pop-in'); // Add animation class
+        div.textContent = text;
+        chatMessages.appendChild(div);
+        // Scroll to the bottom of the chat after a short delay to allow animation
+        setTimeout(() => {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 100);
+    }
+
+    /**
+     * Sends a question to the Django backend AI API and updates the chat.
+     */
+    async function sendQuestion() {
+        const question = questionInput.value.trim();
+        if (!question) {
+            // Use Alpine.js global message system
+            document.querySelector('body').__alpine_data__.showTempMessage('warning', 'Please type a question before sending!');
+            return;
+        }
+
+        appendMessage('user', question);
+        questionInput.value = ''; // Clear input
+        loadingIndicator.classList.remove('hidden');
+        sendButton.disabled = true;
+
+        try {
+            // Get CSRF token for Django POST request
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            const response = await fetch('{% url "generate_ai_response" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // Include CSRF token in header
+                },
+                body: JSON.stringify({
+                    question: question,
+                    chat_history: chatHistory // Send current chat history for context
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+
+            if (result.ai_response) {
+                appendMessage('ai', result.ai_response);
+                // Update frontend chat history to include both user question and AI response
+                chatHistory.push({ role: 'user', text: question });
+                chatHistory.push({ role: 'ai', text: result.ai_response });
+
+                // Update current score displayed
+                const oldScore = parseInt(currentScoreSpan.textContent);
+                const newScore = result.new_score;
+                currentScoreSpan.textContent = newScore;
+
+                // Animate score update if it changed
+                if (newScore !== oldScore) {
+                    currentScoreSpan.classList.add('animate-bounce-in');
+                    setTimeout(() => {
+                        currentScoreSpan.classList.remove('animate-bounce-in');
+                    }, 600); // Match animation duration
+                }
+            } else {
+                appendMessage('ai', 'Sorry, I could not generate a response. Please try a different question.');
+                console.error("Django API returned an empty or malformed AI response:", result);
+                document.querySelector('body').__alpine_data__.showTempMessage('error', 'AI could not generate a response.');
+            }
+        } catch (error) {
+            console.error("Error communicating with Django AI API:", error);
+            appendMessage('ai', `Error: ${error.message}. Please try again.`);
+            document.querySelector('body').__alpine_data__.showTempMessage('error', `API Error: ${error.message}`);
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            sendButton.disabled = false;
+        }
+    }
+
+    // Event Listeners
+    sendButton.addEventListener('click', sendQuestion);
+    questionInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendQuestion();
+        }
+    });
+
+</script>
+{% endblock %}
